@@ -2,19 +2,20 @@ package interpreter.repl
 
 import interpreter.Lexer
 import interpreter.TokenType
+import java.io.PrintStream
 import java.util.Scanner
 
 val PROMPT = ">> "
 
-public fun startRepl(scanner: Scanner) {
+public fun startRepl(scanner: Scanner, out: PrintStream) {
   while (true) {
-    print(PROMPT)
+    out.print(PROMPT)
     while (!scanner.hasNextLine()) {
       Thread.sleep(100)
     }
     var line = scanner.nextLine()
     if (line == null) {
-      println()
+      out.println()
       break
     }
     val lexer = Lexer(line)
@@ -23,7 +24,7 @@ public fun startRepl(scanner: Scanner) {
       if (token.type == TokenType.EOF) {
         break
       }
-      println(token)
+      out.println(token)
     }
   }
 }
