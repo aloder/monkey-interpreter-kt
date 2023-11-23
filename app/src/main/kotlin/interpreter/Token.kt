@@ -1,6 +1,12 @@
 package interpreter
 
-enum class TokenType(val literal: String) {
+public class Token(val type: TokenType, val literal: String) {
+  override fun toString(): String {
+    return "Token($type, $literal)"
+  }
+}
+
+public enum class TokenType(val literal: String) {
   ILLEGAL("ILLEGAL"),
   EOF("EOF"),
   // Identifiers + literals
@@ -9,6 +15,14 @@ enum class TokenType(val literal: String) {
   // Operators
   ASSIGN("="),
   PLUS("+"),
+  MINUS("-"),
+  BANG("!"),
+  ASTERISK("*"),
+  SLASH("/"),
+  LT("<"),
+  GT(">"),
+  EQ("=="),
+  NOT_EQ("!="),
   // Delimiters
   COMMA(","),
   SEMICOLON(";"),
@@ -18,5 +32,10 @@ enum class TokenType(val literal: String) {
   RBRACE("}"),
   // Keywords
   FUNCTION("FUNCTION"),
-  LET("LET")
+  LET("LET"),
+  TRUE("TRUE"),
+  FALSE("FALSE"),
+  IF("IF"),
+  ELSE("ELSE"),
+  RETURN("RETURN")
 }
