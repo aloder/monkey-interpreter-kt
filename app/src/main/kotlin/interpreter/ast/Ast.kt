@@ -73,3 +73,14 @@ public class ExpressionStatement(public val token: Token, public val expression:
     return "${expression.toString()}"
   }
 }
+
+public class IntegerLiteral(public val token: Token, public val value: Long) : Expression {
+
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return token.literal
+  }
+}
