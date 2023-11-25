@@ -4,6 +4,6 @@ import interpreter.repl.startRepl
 import java.io.PrintStream
 import java.util.Scanner
 
-fun main(args: Array<String>) {
+fun main() {
   startRepl(Scanner(System.`in`), PrintStream(System.out))
 }

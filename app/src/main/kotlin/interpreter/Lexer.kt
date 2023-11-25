@@ -10,9 +10,9 @@ public class Lexer {
     this.input = input
     readChar()
   }
-
   public fun nextToken(): Token {
     skipWhitespace()
+
     val result =
         when (ch) {
           '=' -> {

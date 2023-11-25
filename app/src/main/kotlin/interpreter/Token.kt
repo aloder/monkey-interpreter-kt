@@ -1,6 +1,6 @@
 package interpreter
 
-public class Token(val type: TokenType, val literal: String) {
+public class Token(public val type: TokenType, public val literal: String) {
   override fun toString(): String {
     return "Token($type, $literal)"
   }
