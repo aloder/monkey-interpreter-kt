@@ -107,6 +107,33 @@ public class Identifier(public val token: Token, public val value: String) : Exp
   }
 }
 
+public class IfExpression(
+    public val token: Token,
+    public val condition: Expression,
+    public val concequence: BlockStatement,
+    public val alternative: BlockStatement?
+) : Expression {
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return "if $condition $concequence ${if(alternative != null) "else " else ""}$alternative"
+  }
+}
+
+public class BlockStatement(public val token: Token, public val statements: List<Statement>) :
+    Statement {
+
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return statements.map { it.toString() }.reduce { acc, it -> acc + it }
+  }
+}
+
 // [[ Literals ]]
 public class IntegerLiteral(public val token: Token, public val value: Long) : Expression {
 

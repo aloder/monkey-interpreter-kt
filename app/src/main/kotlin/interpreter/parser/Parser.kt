@@ -3,16 +3,20 @@ package interpreter.parser
 import interpreter.Lexer
 import interpreter.Token
 import interpreter.TokenType
+import interpreter.ast.BlockStatement
 import interpreter.ast.BooleanLiteral
 import interpreter.ast.Expression
 import interpreter.ast.ExpressionStatement
 import interpreter.ast.Identifier
+import interpreter.ast.IfExpression
 import interpreter.ast.InfixExpression
 import interpreter.ast.IntegerLiteral
 import interpreter.ast.LetStatement
 import interpreter.ast.PrefixExpression
 import interpreter.ast.Program
+import interpreter.ast.Statement
 import kotlin.collections.ArrayList
+import kotlin.collections.mutableListOf
 
 enum class PRIORITY(val order: Int) {
   LOWEST(1),
@@ -31,6 +35,7 @@ public class Parser(val lexer: Lexer) {
   private val prefixParseFns: Map<TokenType, () -> Expression?> =
       mapOf(
           Pair(TokenType.IDENT, this::parseIdentifier),
+          Pair(TokenType.IF, this::parseIfExpression),
           Pair(TokenType.INT, ::parseIntegerLiteral),
           Pair(TokenType.BANG, ::parsePrefixExpression),
           Pair(TokenType.TRUE, ::parseBoolean),
@@ -169,6 +174,54 @@ public class Parser(val lexer: Lexer) {
       return null
     }
     return PrefixExpression(localCurToken, localCurToken.literal, expression)
+  }
+
+  private fun parseIfExpression(): Expression? {
+    val localCurToken = curToken
+
+    if (!expectPeek(TokenType.LPAREN)) {
+      return null
+    }
+
+    nextToken()
+    val expression = parseExpression(PRIORITY.LOWEST)
+
+    if (expression == null) {
+      return null
+    }
+
+    if (!expectPeek(TokenType.RPAREN)) {
+      return null
+    }
+
+    if (!expectPeek(TokenType.LBRACE)) {
+      return null
+    }
+    val consequence = parseBlockStatement()
+    var alt: BlockStatement? = null
+    if (peekTokenIs(TokenType.ELSE)) {
+      nextToken()
+
+      if (!expectPeek(TokenType.LBRACE)) {
+        return null
+      }
+      alt = parseBlockStatement()
+    }
+    return IfExpression(localCurToken, expression, consequence, alt)
+  }
+
+  private fun parseBlockStatement(): BlockStatement {
+    val localToken = curToken
+    nextToken()
+    val lst: MutableList<Statement> = mutableListOf()
+    while (!curTokenIs(TokenType.RBRACE) && !curTokenIs(TokenType.EOF)) {
+      val stmt = parseStatment()
+      if (stmt != null) {
+        lst.add(stmt)
+      }
+      nextToken()
+    }
+    return BlockStatement(localToken, lst)
   }
 
   private fun parseGroupedExpression(): Expression? {

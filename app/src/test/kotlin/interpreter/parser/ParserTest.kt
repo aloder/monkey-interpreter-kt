@@ -5,6 +5,7 @@ import interpreter.ast.BooleanLiteral
 import interpreter.ast.Expression
 import interpreter.ast.ExpressionStatement
 import interpreter.ast.Identifier
+import interpreter.ast.IfExpression
 import interpreter.ast.InfixExpression
 import interpreter.ast.IntegerLiteral
 import interpreter.ast.LetStatement
@@ -188,6 +189,26 @@ internal class ParserTest {
     assertReturnStatement(program.statements[0])
     assertReturnStatement(program.statements[1])
     assertReturnStatement(program.statements[2])
+  }
+  @Test
+  fun testIfExpression() {
+    val input = """
+    if (x < y) { x } else { y }
+    """
+    val lexer = Lexer(input)
+    val parser = Parser(lexer)
+    val program = parser.parseProgram()
+    checkParserErrors(parser)
+    assertEquals(1, program.statements.size)
+    val statement = program.statements[0]
+    assertTrue(statement is ExpressionStatement)
+    assertTrue(statement.expression is IfExpression)
+    val ifExp = statement.expression as IfExpression
+    assertInfixExpression(ifExp.condition, "x", "<", "y")
+    assertEquals(1, ifExp.concequence.statements.size)
+    val statementConc = ifExp.concequence.statements[0]
+    assertTrue(statementConc is ExpressionStatement)
+    assertIdentifer(statementConc.expression, "x")
   }
 
   fun assertPrefixExpression(expression: Expression, operator: String, right: Any) {
