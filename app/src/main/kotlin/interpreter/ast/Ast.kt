@@ -97,6 +97,17 @@ public class InfixExpression(
   }
 }
 
+public class Identifier(public val token: Token, public val value: String) : Expression {
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return value
+  }
+}
+
+// [[ Literals ]]
 public class IntegerLiteral(public val token: Token, public val value: Long) : Expression {
 
   override fun tokenLiteral(): String {
@@ -108,12 +119,12 @@ public class IntegerLiteral(public val token: Token, public val value: Long) : E
   }
 }
 
-public class Identifier(public val token: Token, public val value: String) : Expression {
+public class BooleanLiteral(public val token: Token, public val value: Boolean) : Expression {
   override fun tokenLiteral(): String {
     return token.literal
   }
 
   override fun toString(): String {
-    return value
+    return token.literal
   }
 }

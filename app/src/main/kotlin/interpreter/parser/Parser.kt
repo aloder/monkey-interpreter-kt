@@ -3,6 +3,7 @@ package interpreter.parser
 import interpreter.Lexer
 import interpreter.Token
 import interpreter.TokenType
+import interpreter.ast.BooleanLiteral
 import interpreter.ast.Expression
 import interpreter.ast.ExpressionStatement
 import interpreter.ast.Identifier
@@ -32,6 +33,9 @@ public class Parser(val lexer: Lexer) {
           Pair(TokenType.IDENT, this::parseIdentifier),
           Pair(TokenType.INT, ::parseIntegerLiteral),
           Pair(TokenType.BANG, ::parsePrefixExpression),
+          Pair(TokenType.TRUE, ::parseBoolean),
+          Pair(TokenType.FALSE, ::parseBoolean),
+          Pair(TokenType.LPAREN, ::parseGroupedExpression),
           Pair(TokenType.MINUS, ::parsePrefixExpression),
       )
   private val precedences: Map<TokenType, PRIORITY> =
@@ -141,6 +145,10 @@ public class Parser(val lexer: Lexer) {
     return IntegerLiteral(localCurToken, value)
   }
 
+  private fun parseBoolean(): Expression {
+    return BooleanLiteral(curToken, curTokenIs(TokenType.TRUE))
+  }
+
   private fun parseInfixExpression(left: Expression): Expression? {
     val localCurToken = curToken
     val localPrecedence = curPrecedence()
@@ -161,6 +169,16 @@ public class Parser(val lexer: Lexer) {
       return null
     }
     return PrefixExpression(localCurToken, localCurToken.literal, expression)
+  }
+
+  private fun parseGroupedExpression(): Expression? {
+    nextToken()
+    val exp = parseExpression(PRIORITY.LOWEST)
+
+    if (!expectPeek(TokenType.RPAREN)) {
+      return null
+    }
+    return exp
   }
 
   private fun parseExpression(precidence: PRIORITY): Expression? {
@@ -190,6 +208,7 @@ public class Parser(val lexer: Lexer) {
   }
 
   fun noPrefixParseFnError(type: TokenType) {
+    errors.add("There is no functin prefix for $type")
     return
   }
 
