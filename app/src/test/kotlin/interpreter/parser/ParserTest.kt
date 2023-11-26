@@ -3,9 +3,13 @@ package interpreter.parser
 import interpreter.Lexer
 import interpreter.ast.ExpressionStatement
 import interpreter.ast.Identifier
+import interpreter.ast.InfixExpression
 import interpreter.ast.IntegerLiteral
 import interpreter.ast.LetStatement
+import interpreter.ast.PrefixExpression
 import interpreter.ast.Statement
+import kotlin.collections.listOf
+import kotlin.io.println
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
@@ -57,6 +61,72 @@ internal class ParserTest {
     assertEquals(true, expressionStatement.expression is IntegerLiteral)
     val integerLiteral = expressionStatement.expression as IntegerLiteral
     assertEquals(5, integerLiteral.value)
+  }
+  @Test
+  fun testPrefixLiteral() {
+    val input = """
+    !5;
+    """
+    val lexer = Lexer(input)
+    val parser = Parser(lexer)
+    val program = parser.parseProgram()
+
+    checkParserErrors(parser)
+    assertEquals(1, program.statements.size)
+    val statement = program.statements[0]
+    assertEquals(true, statement is ExpressionStatement)
+    val expressionStatement = statement as ExpressionStatement
+    val exp = expressionStatement.expression as PrefixExpression
+    assertEquals("!", exp.operator)
+    assertEquals(true, exp.right is IntegerLiteral, "Expression is of type Integer Literal")
+    val lit = exp.right as IntegerLiteral
+    assertEquals(5L, lit.value)
+  }
+
+  @Test
+  fun testInfixLiteral() {
+    val input = """
+    5*5;
+    """
+    val lexer = Lexer(input)
+    val parser = Parser(lexer)
+    val program = parser.parseProgram()
+
+    checkParserErrors(parser)
+    assertEquals(1, program.statements.size)
+    val statement = program.statements[0]
+    assertEquals(true, statement is ExpressionStatement)
+    val expressionStatement = statement as ExpressionStatement
+    val exp = expressionStatement.expression as InfixExpression
+    assertEquals("*", exp.operator)
+    assertEquals(true, exp.right is IntegerLiteral, "Expression is of type Integer Literal")
+    val lit = exp.right as IntegerLiteral
+    assertEquals(5L, lit.value)
+
+    assertEquals(true, exp.left is IntegerLiteral, "Expression is of type Integer Literal")
+    val litLeft = exp.left as IntegerLiteral
+    assertEquals(5L, litLeft.value)
+  }
+  @Test
+  fun testPriorityStatements() {
+    data class TestPriority(val input: String, val expected: String)
+    val inputs: List<TestPriority> =
+        listOf(
+            TestPriority("-a * b", "((-a) * b)"),
+            TestPriority("a * b", "(a * b)"),
+            TestPriority("!-a", "(!(-a))"),
+            TestPriority("a + b - c", "((a + b) - c)"),
+            TestPriority("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
+            TestPriority("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
+        )
+
+    for (input in inputs) {
+      val lexer = Lexer(input.input)
+      val parser = Parser(lexer)
+      val program = parser.parseProgram()
+      checkParserErrors(parser)
+      assertEquals(input.expected, program.toString())
+    }
   }
   @Test
   fun testReturnStatements() {

@@ -7,10 +7,6 @@ interface Node {
   override fun toString(): String
 }
 
-interface Statement : Node {}
-
-interface Expression : Node {}
-
 public class Program(public val statements: ArrayList<Statement> = arrayListOf()) : Node {
 
   override fun tokenLiteral(): String {
@@ -28,15 +24,8 @@ public class Program(public val statements: ArrayList<Statement> = arrayListOf()
   }
 }
 
-public class Identifier(public val token: Token, public val value: String) : Expression {
-  override fun tokenLiteral(): String {
-    return token.literal
-  }
-
-  override fun toString(): String {
-    return value
-  }
-}
+// [[ Statements ]]
+interface Statement : Node {}
 
 public class LetStatement(
     public val token: Token,
@@ -74,6 +63,40 @@ public class ExpressionStatement(public val token: Token, public val expression:
   }
 }
 
+// [[ Expressions ]]
+interface Expression : Node {}
+
+public class PrefixExpression(
+    public val token: Token,
+    public val operator: String,
+    public val right: Expression
+) : Expression {
+
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return "($operator$right)"
+  }
+}
+
+public class InfixExpression(
+    public val token: Token,
+    public val left: Expression,
+    public val operator: String,
+    public val right: Expression
+) : Expression {
+
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return "($left $operator $right)"
+  }
+}
+
 public class IntegerLiteral(public val token: Token, public val value: Long) : Expression {
 
   override fun tokenLiteral(): String {
@@ -82,5 +105,15 @@ public class IntegerLiteral(public val token: Token, public val value: Long) : E
 
   override fun toString(): String {
     return token.literal
+  }
+}
+
+public class Identifier(public val token: Token, public val value: String) : Expression {
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return value
   }
 }
