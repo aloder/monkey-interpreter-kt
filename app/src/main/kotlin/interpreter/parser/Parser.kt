@@ -5,8 +5,10 @@ import interpreter.Token
 import interpreter.TokenType
 import interpreter.ast.BlockStatement
 import interpreter.ast.BooleanLiteral
+import interpreter.ast.CallExpression
 import interpreter.ast.Expression
 import interpreter.ast.ExpressionStatement
+import interpreter.ast.FunctionLiteral
 import interpreter.ast.Identifier
 import interpreter.ast.IfExpression
 import interpreter.ast.InfixExpression
@@ -42,6 +44,7 @@ public class Parser(val lexer: Lexer) {
           Pair(TokenType.FALSE, ::parseBoolean),
           Pair(TokenType.LPAREN, ::parseGroupedExpression),
           Pair(TokenType.MINUS, ::parsePrefixExpression),
+          Pair(TokenType.FUNCTION, ::parseFunctionLiteral),
       )
   private val precedences: Map<TokenType, PRIORITY> =
       mapOf(
@@ -52,6 +55,7 @@ public class Parser(val lexer: Lexer) {
           Pair(TokenType.PLUS, PRIORITY.SUM),
           Pair(TokenType.MINUS, PRIORITY.SUM),
           Pair(TokenType.SLASH, PRIORITY.PRODUCT),
+          Pair(TokenType.LPAREN, PRIORITY.CALL),
           Pair(TokenType.ASTERISK, PRIORITY.PRODUCT),
       )
   private val infixParseFns: Map<TokenType, (Expression) -> Expression?> =
@@ -63,6 +67,7 @@ public class Parser(val lexer: Lexer) {
           Pair(TokenType.EQ, ::parseInfixExpression),
           Pair(TokenType.NOT_EQ, ::parseInfixExpression),
           Pair(TokenType.LT, ::parseInfixExpression),
+          Pair(TokenType.LPAREN, ::parseCallExpression),
           Pair(TokenType.GT, ::parseInfixExpression),
       )
 
@@ -102,11 +107,14 @@ public class Parser(val lexer: Lexer) {
   private fun parseReturnStatement(): interpreter.ast.ReturnStatement? {
     val token = curToken
     nextToken()
-    // TODO: skipping expressions for now
+    val value = parseExpression(PRIORITY.LOWEST)
+    if (value == null) {
+      return null
+    }
     while (curToken.type != TokenType.SEMICOLON) {
       nextToken()
     }
-    return interpreter.ast.ReturnStatement(token, Identifier(token, token.literal))
+    return interpreter.ast.ReturnStatement(token, value)
   }
 
   private fun parseLetStatement(): LetStatement? {
@@ -117,11 +125,17 @@ public class Parser(val lexer: Lexer) {
 
     if (!expectPeek(TokenType.ASSIGN)) return null
 
-    // TODO: skipping expressions for now
+    nextToken()
+
+    val value = parseExpression(PRIORITY.LOWEST)
+    if (value == null) {
+      return null
+    }
+
     while (curToken.type != TokenType.SEMICOLON) {
       nextToken()
     }
-    return LetStatement(token, identifier, identifier)
+    return LetStatement(token, identifier, value)
   }
 
   private fun parseExpressionStatement(): ExpressionStatement? {
@@ -224,6 +238,36 @@ public class Parser(val lexer: Lexer) {
     return BlockStatement(localToken, lst)
   }
 
+  private fun parseCallExpression(function: Expression): Expression {
+    val localToken = curToken
+    return CallExpression(localToken, function, parseCallArguments())
+  }
+
+  private fun parseCallArguments(): List<Expression> {
+    val a: MutableList<Expression> = mutableListOf()
+    if (peekTokenIs(TokenType.RPAREN)) {
+      nextToken()
+      return a
+    }
+    nextToken()
+    val exp = parseExpression(PRIORITY.LOWEST)
+    if (exp != null) {
+      a.add(exp)
+    }
+
+    while (peekTokenIs(TokenType.COMMA)) {
+      nextToken()
+      nextToken()
+      val exp2 = parseExpression(PRIORITY.LOWEST)
+      if (exp2 != null) {
+        a.add(exp2)
+      }
+    }
+    if (expectPeek(TokenType.RPAREN)) {
+      return a
+    }
+    return a
+  }
   private fun parseGroupedExpression(): Expression? {
     nextToken()
     val exp = parseExpression(PRIORITY.LOWEST)
@@ -260,6 +304,42 @@ public class Parser(val lexer: Lexer) {
     return leftExp
   }
 
+  private fun parseFunctionLiteral(): Expression? {
+    val localCurToken = curToken
+
+    if (!expectPeek(TokenType.LPAREN)) {
+      return null
+    }
+    val parameters = parseFunctionParameters()
+
+    if (!expectPeek(TokenType.LBRACE)) {
+      return null
+    }
+
+    val body = parseBlockStatement()
+    return FunctionLiteral(localCurToken, parameters, body)
+  }
+  private fun parseFunctionParameters(): List<Identifier> {
+    val list: MutableList<Identifier> = mutableListOf()
+
+    if (peekTokenIs(TokenType.RPAREN)) {
+      nextToken()
+      return list
+    }
+    nextToken()
+    list.add(parseIdentifier())
+    while (peekTokenIs(TokenType.COMMA)) {
+      nextToken()
+      nextToken()
+      list.add(parseIdentifier())
+    }
+    if (!expectPeek(TokenType.RPAREN)) {
+      return list
+    }
+
+    return list
+  }
+
   fun noPrefixParseFnError(type: TokenType) {
     errors.add("There is no functin prefix for $type")
     return
@@ -279,6 +359,7 @@ public class Parser(val lexer: Lexer) {
       nextToken()
       return true
     } else {
+      peekError(expected)
       return false
     }
   }

@@ -1,9 +1,10 @@
 package interpreter.repl
 
 import interpreter.Lexer
-import interpreter.TokenType
+import interpreter.parser.Parser
 import java.io.PrintStream
 import java.util.Scanner
+import kotlin.io.println
 
 val PROMPT = ">> "
 
@@ -19,12 +20,18 @@ public fun startRepl(scanner: Scanner, out: PrintStream) {
       break
     }
     val lexer = Lexer(line)
-    while (true) {
-      val token = lexer.nextToken()
-      if (token.type == TokenType.EOF) {
-        break
-      }
-      out.println(token)
+    val parser = Parser(lexer)
+    val program = parser.parseProgram()
+    if (parser.getErrors().size > 0) {
+      printParserErrors(out, parser.getErrors())
+      continue
     }
+    out.println(program.toString())
   }
+}
+
+private fun printParserErrors(out: PrintStream, errors: List<String>) {
+  out.println("Woops! We ran into some monkey business here!")
+  out.println(" parser errors: ")
+  errors.forEach { out.println(it) }
 }

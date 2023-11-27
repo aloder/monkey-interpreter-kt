@@ -1,6 +1,7 @@
 package interpreter.ast
 
 import interpreter.Token
+import kotlin.text.append
 
 interface Node {
   fun tokenLiteral(): String
@@ -130,10 +131,24 @@ public class BlockStatement(public val token: Token, public val statements: List
   }
 
   override fun toString(): String {
-    return statements.map { it.toString() }.reduce { acc, it -> acc + it }
+    return statements.joinToString("") { it.toString() }
   }
 }
 
+public class CallExpression(
+    public val token: Token,
+    public val function: Expression,
+    public val arguments: List<Expression>
+) : Expression {
+
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    return "$function(${arguments.joinToString(", ") { it.toString() }})"
+  }
+}
 // [[ Literals ]]
 public class IntegerLiteral(public val token: Token, public val value: Long) : Expression {
 
@@ -153,5 +168,26 @@ public class BooleanLiteral(public val token: Token, public val value: Boolean) 
 
   override fun toString(): String {
     return token.literal
+  }
+}
+
+public class FunctionLiteral(
+    public val token: Token,
+    public val parameters: List<Identifier>,
+    public val body: BlockStatement
+) : Expression {
+  override fun tokenLiteral(): String {
+    return token.literal
+  }
+
+  override fun toString(): String {
+    val builder = StringBuilder()
+    builder.append(tokenLiteral())
+    builder.append("(")
+    val strings = parameters.joinToString(", ")
+    builder.append(strings)
+    builder.append(") ")
+    builder.append(body.toString())
+    return builder.toString()
   }
 }

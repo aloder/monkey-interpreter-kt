@@ -4,6 +4,7 @@ import interpreter.Lexer
 import interpreter.ast.BooleanLiteral
 import interpreter.ast.Expression
 import interpreter.ast.ExpressionStatement
+import interpreter.ast.FunctionLiteral
 import interpreter.ast.Identifier
 import interpreter.ast.IfExpression
 import interpreter.ast.InfixExpression
@@ -13,6 +14,7 @@ import interpreter.ast.PrefixExpression
 import interpreter.ast.Statement
 import kotlin.collections.listOf
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
@@ -30,9 +32,9 @@ internal class ParserTest {
     val program = parser.parseProgram()
     checkParserErrors(parser)
     assertEquals(program.statements.size, 3)
-    assertLetStatement(program.statements[0], "x")
-    assertLetStatement(program.statements[1], "y")
-    assertLetStatement(program.statements[2], "foobar")
+    assertLetStatement(program.statements[0], "x", 5)
+    assertLetStatement(program.statements[1], "y", 10)
+    assertLetStatement(program.statements[2], "foobar", 838383)
   }
 
   @Test
@@ -117,6 +119,12 @@ internal class ParserTest {
             TestPriority("a + b - c", "((a + b) - c)"),
             TestPriority("a + b * c + d / e - f", "(((a + (b * c)) + (d / e)) - f)"),
             TestPriority("3 + 4 * 5 == 3 * 1 + 4 * 5", "((3 + (4 * 5)) == ((3 * 1) + (4 * 5)))"),
+            TestPriority("a + add(b * c) + d", "((a + add((b * c))) + d)"),
+            TestPriority(
+                "add(a, b, 1, 2 * 3, 4 + 5, add(6, 7 * 8))",
+                "add(a, b, 1, (2 * 3), (4 + 5), add(6, (7 * 8)))"
+            ),
+            TestPriority("fn() {}", "fn() "),
         )
 
     for (input in inputs) {
@@ -174,6 +182,30 @@ internal class ParserTest {
       assertPrefixExpression(statement.expression, input.operator, input.rightValue)
     }
   }
+  @Test
+  fun testFunctionParameterParsing() {
+    data class TestParams(val input: String, val expectedParams: List<String>)
+    val inputs: List<TestParams> =
+        listOf(
+            TestParams("fn() {}", listOf()),
+            TestParams("fn(x) {}", listOf("x")),
+            TestParams("fn(x, y, z) {}", listOf("x", "y", "z")),
+        )
+
+    for (input in inputs) {
+      val lexer = Lexer(input.input)
+      val parser = Parser(lexer)
+      val program = parser.parseProgram()
+      checkParserErrors(parser)
+      assertEquals(1, program.statements.size)
+      val statement = program.statements[0]
+      assertTrue(statement is ExpressionStatement)
+      assertTrue(statement.expression is FunctionLiteral)
+      val func = statement.expression as FunctionLiteral
+      assertContentEquals(func.parameters.map { it.toString() }, input.expectedParams)
+    }
+  }
+
   @Test
   fun testReturnStatements() {
     val input = """
@@ -262,11 +294,12 @@ internal class ParserTest {
     assertEquals(statement.tokenLiteral(), "return")
   }
 
-  fun assertLetStatement(statement: Statement, name: String) {
+  fun assertLetStatement(statement: Statement, name: String, value: Any) {
     assertEquals(statement.tokenLiteral(), "let")
     val letStatement = statement as LetStatement
     assertEquals(letStatement.name.value, name)
     assertEquals(letStatement.name.tokenLiteral(), name)
+    assertLiteralExpression(letStatement.value, value)
   }
 
   fun checkParserErrors(parser: Parser) {
@@ -279,6 +312,5 @@ internal class ParserTest {
       builder.append("$error\n")
     }
     throw AssertionError("parser has ${errors.size} errors: ${builder.toString()}")
-    assertEquals(errors.size, 0)
   }
 }
