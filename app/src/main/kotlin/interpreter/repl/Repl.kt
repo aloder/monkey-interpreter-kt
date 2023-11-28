@@ -1,6 +1,7 @@
 package interpreter.repl
 
 import interpreter.Lexer
+import interpreter.evaluator.Eval
 import interpreter.parser.Parser
 import java.io.PrintStream
 import java.util.Scanner
@@ -26,7 +27,8 @@ public fun startRepl(scanner: Scanner, out: PrintStream) {
       printParserErrors(out, parser.getErrors())
       continue
     }
-    out.println(program.toString())
+    val evaluated = Eval(program)
+    out.println(evaluated?.inspect())
   }
 }
 
